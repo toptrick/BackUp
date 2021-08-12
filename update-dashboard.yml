@@ -1,0 +1,194 @@
+jobs:
+  - job: 'UpdateDashBoard'
+    variables:
+      - template: ./app-vars.yml@self
+    pool:
+      vmImage: ubuntu-latest
+    ${{if eq(parameters.stageName,'Build')}}:
+      dependsOn: 'Build'
+      condition: and(in(dependencies.Build.result, 'Succeeded'),ne(variables['Build.Reason'], 'PullRequest'),ne(variables['Build.Reason'], 'Schedule'))
+    ${{if eq(parameters.stageName,'Dev')}}:
+      condition: ne(variables['Build.Reason'], 'PullRequest')  
+      ${{ if ne(variables.skipITTests, true)}}:
+        dependsOn: ${{parameters.applicationName}}_IT
+      ${{ if eq(variables.skipITTests, true)}}: 
+        dependsOn: ${{parameters.applicationName}}_Deployment  
+    ${{if eq(parameters.stageName,'Test')}}:
+      condition: ne(variables['Build.Reason'], 'PullRequest')
+      ${{ if ne(variables.skipQATTests, true)}}:
+        dependsOn: ${{parameters.applicationName}}_QAT
+      ${{ if eq(variables.skipQATTests, true)}}: 
+        dependsOn: ${{parameters.applicationName}}_Deployment
+
+    ${{if eq(parameters.stageName,'Stage')}}:
+      condition: ne(variables['Build.Reason'], 'PullRequest')
+      ${{ if ne(variables.skipUATTests, true)}}:
+        dependsOn: ${{parameters.applicationName}}_UAT
+      ${{ if eq(variables.skipUATTests, true)}}: 
+        dependsOn: ${{parameters.applicationName}}_Deployment  
+
+    ${{if eq(parameters.stageName,'Prod')}}: 
+      condition: ne(variables['Build.Reason'], 'PullRequest')
+      ${{ if ne(variables.skipProdMon, true)}}:
+        dependsOn: ${{parameters.applicationName}}_ProdMon
+      ${{ if eq(variables.skipProdMon, true)}}: 
+        dependsOn: ${{parameters.applicationName}}_Deployment
+    steps:
+    - checkout: dashboards
+      persistCredentials: true
+    - script: |
+        cd $SYSTEM_DEFAULTWORKINGDIRECTORY
+        git pull origin main
+    - template: ../steps/powershell-tasks.yml
+      parameters:
+        taskName: 'Update_Build_Details_and_Deployment_Date'
+        targetType: 'inline'
+        script: |
+            $buildnumber = "$(Build.BuildNumber)"
+            if("${{parameters.componentName}}" -ne ""){
+            $md = Get-Content -Path $(System.DefaultWorkingDirectory)\${{parameters.applicationName}}\${{parameters.componentName}}\details.md 
+            } else{
+            $md = Get-Content -Path $(System.DefaultWorkingDirectory)\${{parameters.applicationName}}\details.md 
+            }
+            Get-Date -format "MM/dd/yyyy"          
+            $TimeNow = Get-Date          
+            get-date $TimeNow -f "MM/dd/yyyy"          
+            $deployDate = $TimeNow.ToUniversalTime().ToString("MM/dd/yyyy")
+            if("${{parameters.stageName}}" -eq "Build"){
+              $mdSplitBuildVersion= $md[4].Split("|");
+              $mdSplitBuildVersion[2] = " **"+"$buildnumber"+"** "
+              $mdSplitBuildVersion.Length
+              $md[4]= ""
+              for( $i=0; $i -lt  $mdSplitBuildVersion.Length-1; $i++){
+              $md[4] += $mdSplitBuildVersion[$i] + "|"
+              }
+              $mdSplitDeployDate = $md[5].Split("|")
+              $mdsplit
+              $mdSplitDeployDate[2] = "$deployDate"
+              $md[5]= ""
+              for( $i=0; $i -lt  $mdSplitDeployDate.Length-1; $i++){
+              $md[5] +=  $mdSplitDeployDate[$i] + "|"
+            }
+            }
+            if("${{parameters.stageName}}" -eq "Dev"){
+              $mdSplitBuildVersion= $md[4].Split("|");
+              $mdSplitBuildVersion[3] = " **"+"$buildnumber"+"** "
+              $mdSplitBuildVersion.Length
+              $md[4]= ""
+              for( $i=0; $i -lt  $mdSplitBuildVersion.Length-1; $i++){
+              $md[4] += $mdSplitBuildVersion[$i] + "|"
+              }
+              $mdSplitDeployDate = $md[5].Split("|")
+              $mdsplit
+              $mdSplitDeployDate[3] = "$deployDate"
+              $md[5]= ""
+              for( $i=0; $i -lt  $mdSplitDeployDate.Length-1; $i++){
+              $md[5] +=  $mdSplitDeployDate[$i] + "|"
+            }
+            }
+            if("${{parameters.stageName}}" -eq "Test"){
+              $mdSplitBuildVersion= $md[4].Split("|");
+              $mdSplitBuildVersion[4] = " **"+"$buildnumber"+"** "
+              $mdSplitBuildVersion.Length
+              $md[4]= ""
+              for( $i=0; $i -lt  $mdSplitBuildVersion.Length-1; $i++){
+              $md[4] += $mdSplitBuildVersion[$i] + "|"
+              }
+              $mdSplitDeployDate = $md[5].Split("|")
+              $mdsplit
+              $mdSplitDeployDate[4] = "$deployDate"
+              $md[5]= ""
+              for( $i=0; $i -lt  $mdSplitDeployDate.Length-1; $i++){
+              $md[5] +=  $mdSplitDeployDate[$i] + "|"
+            }
+            }
+            if("${{parameters.stageName}}" -eq "Stage"){
+              $mdSplitBuildVersion= $md[4].Split("|");
+              $mdSplitBuildVersion[5] = " **"+"$buildnumber"+"** "
+              $mdSplitBuildVersion.Length
+              $md[4]= ""
+              for( $i=0; $i -lt  $mdSplitBuildVersion.Length-1; $i++){
+              $md[4] += $mdSplitBuildVersion[$i] + "|"
+              }
+              $mdSplitDeployDate = $md[5].Split("|")
+              $mdsplit
+              $mdSplitDeployDate[5] = "$deployDate"
+              $md[5]= ""
+              for( $i=0; $i -lt  $mdSplitDeployDate.Length-1; $i++){
+              $md[5] +=  $mdSplitDeployDate[$i] + "|"
+            }
+            }
+            if("${{parameters.stageName}}" -eq "Prod"){
+              $mdSplitBuildVersion= $md[4].Split("|");
+              $mdSplitBuildVersion[6] = " **"+"$buildnumber"+"** "
+              $mdSplitBuildVersion.Length
+              $md[4]= ""
+              for( $i=0; $i -lt  $mdSplitBuildVersion.Length-1; $i++){
+              $md[4] += $mdSplitBuildVersion[$i] + "|"
+              }
+              $mdSplitDeployDate = $md[5].Split("|")
+              $mdsplit
+              $mdSplitDeployDate[6] = "$deployDate"
+              $md[5]= ""
+              for( $i=0; $i -lt  $mdSplitDeployDate.Length-1; $i++){
+              $md[5] +=  $mdSplitDeployDate[$i] + "|"
+            }
+            }
+            if("${{parameters.componentName}}" -ne ""){
+              $md | Out-File $(System.DefaultWorkingDirectory)\${{parameters.applicationName}}\${{parameters.componentName}}\details.md
+              }
+              else{
+               $md | Out-File $(System.DefaultWorkingDirectory)\${{parameters.applicationName}}\details.md
+              }
+                        
+    - ${{ if eq(parameters.stageName, variables.releasenotesGenerateStage)}}:
+      - template: ../steps/releasenotesgenerator-tasks.yml
+        parameters:
+            outputfile: '$(build.artifactstagingdirectory)/releasenotes.md'
+            templateLocation: 'InLine'
+            inlinetemplate: |
+              ##Release Notes
+              
+              **{{buildDetails.buildNumber}}**
+
+              **Build Date**: {{buildDetails.startTime}}
+
+              **Contents**: 
+
+              {{#forEach this.workItems}}
+              {{#if isFirst}}### WorkItems {{/if}}
+              *  **{{this.id}}**  {{lookup this.fields 'System.Title'}}
+              {{#forEach this.relations}}
+              {{#if (contains this.attributes.name 'Pull Request')}}
+              {{#with (lookup_a_pullrequest ../../pullRequests  this.url)}}
+                    - {{this.title}} 
+              {{/with}}
+              {{/if}}
+              {{/forEach}} 
+              {{/forEach}}
+            checkStage: false
+            stopOnRedeploy: false
+            sortWi: false
+            showOnlyPrimary: false
+            searchCrossProjectForPRs: false
+            dumpPayloadToConsole: false
+            dumpPayloadToFile: false
+            replaceFile: false
+            getParentsAndChildren: false
+            getAllParents: false
+            getIndirectPullRequests: false
+      - template: ../steps/copyfiles2-tasks.yml
+        parameters:
+          SourceFolder: '$(build.artifactstagingdirectory)'
+          Contents: '**'
+          ${{if eq(parameters.componentName, '')}}:
+            TargetFolder: '$(System.DefaultWorkingDirectory)/${{parameters.applicationName}}'
+          ${{if ne(parameters.componentName, '')}}:
+            TargetFolder: '$(System.DefaultWorkingDirectory)/${{parameters.applicationName}}/${{parameters.componentName}}'
+          overWrite: true
+    - template: ../steps/commit-to-git.yml
+      parameters:
+        gitUserName: 'VSTS AUTOMATED BUILD'
+        gitUserEmail: 'build@f5itdev.visualstudio.com'
+        commitMessage: "Auto generating and updating dashboard files"
+        sourceBranchName: 'main'
